@@ -1,1107 +1,590 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRIMECORE - Text Adventure</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap ');
-       
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-       
-        body {
-            background: #0a0a0a;
-            color: #00ff00;
-            font-family: 'Share Tech Mono', monospace;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-        }
-       
-        body::before {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
-            z-index: 1000;
-        }
-       
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-       
-        header {
-            background: #111;
-            border-bottom: 2px solid #00ff00;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-        }
-       
-        h1 {
-            font-size: 2em;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            text-shadow: 0 0 10px #00ff00;
-            animation: flicker 3s infinite;
-        }
-       
-        @keyframes flicker {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.95; }
-            52% { opacity: 0.5; }
-            54% { opacity: 0.95; }
-        }
-       
-        .game-container {
-            display: flex;
-            flex: 1;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-            padding: 20px;
-            gap: 20px;
-        }
-       
-        .sidebar {
-            width: 300px;
-            background: #111;
-            border: 1px solid #333;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-       
-        .status-panel {
-            border: 1px solid #00ff00;
-            padding: 15px;
-            background: #0a0a0a;
-        }
-       
-        .health-bar {
-            width: 100%;
-            height: 20px;
-            background: #330000;
-            border: 1px solid #ff0000;
-            margin-top: 10px;
-            position: relative;
-            overflow: hidden;
-        }
-       
-        .health-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff0000, #ff6666);
-            transition: width 0.3s;
-            box-shadow: 0 0 10px #ff0000;
-        }
-       
-        .inventory-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-            margin-top: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-       
-        .item {
-            background: #222;
-            border: 1px solid #444;
-            padding: 5px;
-            text-align: center;
-            font-size: 0.8em;
-            cursor: help;
-            transition: all 0.2s;
-        }
-       
-        .item:hover {
-            border-color: #00ff00;
-            background: #1a1a1a;
-        }
-       
-        .main-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #111;
-            border: 1px solid #333;
-        }
-       
-        .game-log {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            max-height: 60vh;
-            border-bottom: 1px solid #333;
-        }
-       
-        .log-entry {
-            margin-bottom: 10px;
-            line-height: 1.6;
-            border-left: 2px solid #00ff00;
-            padding-left: 10px;
-            animation: slideIn 0.3s ease-out;
-        }
-       
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-       
-        .log-entry.combat { border-color: #ff0000; color: #ff6666; }
-        .log-entry.loot { border-color: #ffff00; color: #ffff99; }
-        .log-entry.event { border-color: #00ffff; color: #99ffff; }
-        .log-entry.death { border-color: #ff0000; color: #ff0000; font-weight: bold; }
-        .log-entry.win { border-color: #ffd700; color: #ffd700; font-size: 1.2em; }
-       
-        .action-panel {
-            padding: 20px;
-            background: #0a0a0a;
-        }
-       
-        .button-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-       
-        button {
-            background: #001100;
-            border: 1px solid #00ff00;
-            color: #00ff00;
-            padding: 12px 20px;
-            font-family: inherit;
-            font-size: 1em;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.2s;
-            position: relative;
-            overflow: hidden;
-        }
-       
-        button:hover:not(:disabled) {
-            background: #00ff00;
-            color: #000;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-        }
-       
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            border-color: #333;
-            color: #333;
-        }
-       
-        button.danger {
-            border-color: #ff0000;
-            color: #ff6666;
-        }
-       
-        button.danger:hover:not(:disabled) {
-            background: #ff0000;
-            color: #000;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-        }
-       
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-       
-        .modal.active {
-            display: flex;
-        }
-       
-        .modal-content {
-            background: #111;
-            border: 2px solid #00ff00;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 0 50px rgba(0, 255, 0, 0.3);
-        }
-       
-        .riddle-input {
-            width: 100%;
-            background: #000;
-            border: 1px solid #00ff00;
-            color: #00ff00;
-            padding: 10px;
-            font-family: inherit;
-            font-size: 1.2em;
-            margin-top: 15px;
-        }
-       
-        .hidden { display: none !important; }
-       
-        .biome-indicator {
-            text-align: center;
-            padding: 10px;
-            background: #222;
-            border: 1px solid #444;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-            text-transform: uppercase;
-        }
-       
-        .dungeon-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-       
-        .dungeon-node {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #444;
-            background: #1a1a1a;
-            font-size: 0.8em;
-            position: relative;
-        }
-       
-        .dungeon-node.completed {
-            background: #003300;
-            border-color: #00ff00;
-        }
-       
-        .dungeon-node.current {
-            box-shadow: 0 0 10px #00ff00;
-            animation: pulse 2s infinite;
-        }
-       
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-       
-        @media (max-width: 768px) {
-            .game-container { flex-direction: column; }
-            .sidebar { width: 100%; }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Building Connections – Cork LCYP Strategic Plan 2024–28</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --primary: #0b5c7a;
+      --accent: #f4b000;
+      --bg: #f7f7fa;
+      --text: #222;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), #143b52);
+      color: #fff;
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2.4rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    header h2 {
+      margin: 0;
+      font-weight: 400;
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    header p {
+      max-width: 800px;
+      margin: 1.5rem auto 0;
+      font-size: 0.98rem;
+    }
+
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    nav .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+    }
+
+    nav button {
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    nav button:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1rem 3rem;
+    }
+
+    section {
+      margin-bottom: 2.5rem;
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.5rem 1.5rem 1.2rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    }
+
+    section h2 {
+      margin-top: 0;
+      color: var(--primary);
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    section h3 {
+      margin-top: 1.2rem;
+      font-size: 1.05rem;
+      color: #333;
+    }
+
+    .tagline {
+      font-style: italic;
+      color: #eee;
+      margin-top: 1rem;
+    }
+
+    .quote {
+      border-left: 4px solid var(--accent);
+      padding-left: 0.9rem;
+      margin: 1rem 0;
+      font-style: italic;
+      color: #444;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.15);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    ul {
+      padding-left: 1.2rem;
+    }
+
+    .objectives-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      padding: 1rem 1rem 0.6rem;
+      background: #fafafa;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: var(--primary);
+    }
+
+    .collapsible {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      margin-top: 0.8rem;
+      overflow: hidden;
+    }
+
+    .collapsible-header {
+      background: #f1f1f6;
+      padding: 0.6rem 0.8rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+
+    .collapsible-header span {
+      font-weight: 600;
+    }
+
+    .collapsible-body {
+      padding: 0.7rem 0.9rem 0.9rem;
+      display: none;
+      background: #fff;
+    }
+
+    .collapsible.open .collapsible-body {
+      display: block;
+    }
+
+    .collapsible-header .chevron {
+      font-size: 0.9rem;
+      transition: transform 0.2s;
+    }
+
+    .collapsible.open .chevron {
+      transform: rotate(90deg);
+    }
+
+    .links-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .links-table th,
+    .links-table td {
+      border: 1px solid #ddd;
+      padding: 0.5rem;
+    }
+
+    .links-table th {
+      background: #f1f1f6;
+      text-align: left;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem 1rem 2rem;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 1.8rem;
+      }
+      header h2 {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>⚡ PRIMECORE ⚡</h1>
-        <div style="font-size: 0.8em; opacity: 0.8;">Survival Text Adventure</div>
-    </header>
-   
-    <div class="game-container">
-        <aside class="sidebar">
-            <div class="status-panel">
-                <div class="biome-indicator" id="currentBiome">LONG ISLAND</div>
-                <div>
-                    <strong>❤ LEBEN:</strong>
-                    <div class="health-bar">
-                        <div class="health-fill" id="healthBar" style="width: 100%"></div>
-                    </div>
-                    <div id="healthText" style="text-align: center; margin-top: 5px;">100/100</div>
-                </div>
-            </div>
-           
-            <div class="status-panel">
-                <strong>🎒 INVENTAR (<span id="itemCount">0</span>)</strong>
-                <div class="inventory-grid" id="inventory"></div>
-            </div>
-           
-            <div class="status-panel">
-                <strong>🏰 DUNGEONS:</strong>
-                <div class="dungeon-grid" id="dungeonGrid">
-                    <div class="dungeon-node" data-biome="0" data-dungeon="0">D1</div>
-                    <div class="dungeon-node" data-biome="0" data-dungeon="1">D2</div>
-                    <div class="dungeon-node" data-biome="0" data-dungeon="2">D3</div>
-                    <div class="dungeon-node" data-biome="1" data-dungeon="0">D1</div>
-                    <div class="dungeon-node" data-biome="1" data-dungeon="1">D2</div>
-                    <div class="dungeon-node" data-biome="1" data-dungeon="2">D3</div>
-                    <div class="dungeon-node" data-biome="2" data-dungeon="0">D1</div>
-                    <div class="dungeon-node" data-biome="2" data-dungeon="1">D2</div>
-                    <div class="dungeon-node" data-biome="2" data-dungeon="2">D3</div>
-                </div>
-                <div style="margin-top: 10px; font-size: 0.8em; opacity: 0.7;">
-                    Reihe 1: Long Island<br>
-                    Reihe 2: Cryo Zone<br>
-                    Reihe 3: Obsidian
-                </div>
-            </div>
-        </aside>
-       
-        <main class="main-panel">
-            <div class="game-log" id="gameLog">
-                <div class="log-entry">Willkommen in PRIMECORE. Ein düsteres Land voller mutierter Kreaturen erwartet dich!</div>
-                <div class="log-entry">Dein Ziel: Besiege den Endboss TYRANOCELUS ARCEPHALUS.</div>
-            </div>
-           
-            <div class="action-panel" id="actionPanel">
-                <div id="biomeSelection">
-                    <strong>WÄHLE DEINEN STARTPUNKT:</strong>
-                    <div class="button-grid">
-                        <button onclick="selectBiome(0)">Long Island (Einfach)</button>
-                        <button onclick="selectBiome(1)">Cryo Zone (Mittel)</button>
-                        <button onclick="selectBiome(2)" class="danger">Obsidian Wilderness (Schwer)</button>
-                    </div>
-                    <img id="biomBild" src = "Biom_Bild.png" style="display:none; width:300px; margin-top: 15px;">
-                </div>
-               
-                <div id="mainMenu" class="hidden">
-                    <strong>AKTION:</strong>
-                    <div class="button-grid">
-                        <button onclick="explore()">🔍 Erkunden</button>
-                        <button onclick="showDungeons()">🏰 Dungeon betreten</button>
-                        <button onclick="showCrafting()">⚒ Craften</button>
-                        <button onclick="showBiomeChange()">🌍 Biom wechseln</button>
-                        <button onclick="challengeEndBoss()" class="danger" id="bossBtn" disabled>👹 Endboss herausfordern</button>
-                    </div>
-                </div>
-               
-                <div id="combatMenu" class="hidden">
-                    <strong>KAMPFMODUS:</strong>
-                    <div id="combatInfo" style="margin-bottom: 10px; color: #ff6666;"></div>
-                    <div class="button-grid">
-                        <button onclick="combatAction('attack')" class="danger">⚔ Angreifen</button>
-                        <button onclick="combatAction('flee')">🏃 Fliehen</button>
-                    </div>
-                </div>
-               
-                <div id="bossCombatMenu" class="hidden">
-                    <strong>FINALER KAMPF:</strong>
-                    <div id="bossCombatInfo" style="margin-bottom: 10px; color: #ff0000; font-size: 1.2em;"></div>
-                    <div class="button-grid">
-                        <button onclick="bossCombatAction('attack')" class="danger">⚔ Angreifen</button>
-                        <button onclick="bossCombatAction('special')" style="border-color: #ffd700; color: #ffd700;">⚡ Spezialattacke</button>
-                    </div>
-                </div>
-               
-                <div id="dungeonSelect" class="hidden">
-                    <strong>DUNGEON AUSWÄHLEN:</strong>
-                    <div id="dungeonButtons" class="button-grid"></div>
-                    <button onclick="showMain()" style="margin-top: 10px; width: 100%;">Zurück</button>
-                </div>
-               
-                <div id="craftingMenu" class="hidden">
-                    <strong>CRAFTING:</strong>
-                    <div id="craftingButtons" class="button-grid"></div>
-                    <button onclick="showMain()" style="margin-top: 10px; width: 100%;">Zurück</button>
-                </div>
-               
-                <div id="biomeChange" class="hidden">
-                    <strong>REISEN ZU:</strong>
-                    <div class="button-grid">
-                        <button onclick="changeBiome(0)">Long Island</button>
-                        <button onclick="changeBiome(1)">Cryo Zone</button>
-                        <button onclick="changeBiome(2)" class="danger">Obsidian Wilderness</button>
-                    </div>
-                    <button onclick="showMain()" style="margin-top: 10px; width: 100%;">Zurück</button>
-                </div>
-            </div>
-        </main>
+  <header>
+    <div class="pill">Cork Local Creative Youth Partnership</div>
+    <h1>Building Connections</h1>
+    <h2>Strategic Plan 2024–2028</h2>
+    <p class="tagline">
+      “What is creativity? It is a reaction. It's a conversation. It's a dance ... It's beautiful to see.”
+      – Amelie Prone, Young Critic at the Crawford Art Gallery for Youth Theatre Ireland
+    </p>
+    <p>
+      Cork ETB’s Local Creative Youth Partnership (LCYP) is a youth-led network that expands creative
+      opportunities for children and young people aged 0–24 across Cork city and county.
+    </p>
+  </header>
+
+  <nav>
+    <div class="nav-inner">
+      <button data-target="transformational-power">Transformational Power</button>
+      <button data-target="finding-our-voice">Finding Our Voice</button>
+      <button data-target="background-context">Background & Context</button>
+      <button data-target="creative-youth">Creative Youth</button>
+      <button data-target="cork-etb">Cork ETB</button>
+      <button data-target="consultations">Consultations</button>
+      <button data-target="mission-values">Mission & Priorities</button>
+      <button data-target="objectives-actions">Objectives & Actions</button>
+      <button data-target="links">Links</button>
     </div>
-   
-    <div class="modal" id="riddleModal">
-        <div class="modal-content">
-            <h2>🏰 DUNGEON RÄTSEL</h2>
-            <p id="riddleText" style="margin-top: 15px; line-height: 1.6;"></p>
-            <input type="text" class="riddle-input" id="riddleInput" placeholder="Deine Antwort..." onkeypress="if(event.key==='Enter') checkRiddle()">
-            <div style="margin-top: 15px; color: #ff6666; font-size: 0.9em;">
-                Jeder Fehlversuch kostet 8 Leben!<br>
-                Aktuelles Leben: <span id="riddleHealth">100</span>
+  </nav>
+
+  <main>
+    <section id="transformational-power">
+      <h2>Transformational Power of Creativity</h2>
+      <p>
+        Welcome to the first Strategic Plan for Cork ETB's Local Creative Youth Partnership (LCYP).
+        Established in April 2022, the Cork LCYP is, at its core, a network to enable information sharing
+        and collaboration between the ETB, local authorities, the non-formal education sector, family
+        support services and youth services.
+      </p>
+      <p>
+        Directly funded by government and led by the voices of young people, the LCYP aims to explore
+        and develop pathways to ensure that all children and young people can flourish creatively,
+        delivering opportunities for experimentation, play and creative engagement.
+      </p>
+      <p>
+        Creativity is described as fluid, intangible, delightful and innovative, supporting the social,
+        personal and creative development of young people and enabling relationship-building,
+        collaboration and the exchange of ideas.
+      </p>
+      <p>
+        The aims of the partnership are to give every child and young person (0–24 years) in Cork city
+        and county practical access to out-of-school tuition, experience and participation in creativity.
+        Young people's participation in decision-making is central to the development, implementation
+        and evaluation of plans and activities of the LCYP.
+      </p>
+    </section>
+
+    <section id="finding-our-voice">
+      <h2>Finding Our Voice</h2>
+      <p>
+        Cork ETB Local Creative Youth Partnership has created a pilot youth-led forum called the
+        <strong>Rebel Youth Creatives (RYC)</strong> to consult on creative matters. Through monthly meetings,
+        young people have participated in creating a youth-informed strategic plan in a warm, welcoming
+        environment that builds confidence and self-esteem.
+      </p>
+      <p>
+        One member describes the impact: “As someone who comes from an area of rural isolation, this
+        opportunity has been life-changing for me as I have made incredible friends and connections.”
+      </p>
+      <p>
+        The LCYP ensures all voices are heard, especially those of young people who are seldom heard.
+        Diversity and inclusion are at the core of the Partnership and the Rebel Youth Creatives group,
+        implementing Article 12 of the UN Convention on the Rights of the Child using the Lundy Model.
+      </p>
+      <div class="quote">
+        “As a young person, being a Rebel Youth Creative has been incredibly exciting and invaluable to my
+        career as an emerging artist and of course as a young person. I have such a clear understanding of
+        my rights: I have found my voice.” – Katie O’Rourke, Rebel Youth Creative
+      </div>
+    </section>
+
+    <section id="background-context">
+      <h2>Background and Context</h2>
+      <p>
+        The <strong>Creative Youth Plan</strong>, published in December 2017, aims to give every child practical
+        access to tuition, experience and participation in creativity and to ensure that children and young
+        people retain a key voice in decision-making, prioritising those most at risk of disadvantage.
+      </p>
+      <p>
+        Creativity is described as “the use of imaginative capabilities to transform thinking and produce
+        original and innovative ideas and solutions.”
+      </p>
+    </section>
+
+    <section id="creative-youth">
+      <h2>Creative Youth & Creative Ireland Programme</h2>
+      <p>
+        The <strong>Creative Ireland Programme</strong> is an all-of-government, culture-based initiative that
+        emphasises the importance of human creativity for individual, community and national wellbeing.
+        It is grounded in the belief that every person has creative capacities, the development of which
+        contributes to personal and collective wellbeing.
+      </p>
+      <p>
+        The long-term objective is that wellbeing is enhanced through increased participation in creative
+        activity at all stages of life. Key partners in delivering Creative Youth include the Department of
+        Education (DoE), the Department of Children, Equality, Disability, Integration and Youth (DCEDIY),
+        and the Department of Tourism, Culture, Arts, Gaeltacht, Sport and Media (DTCAGSM).
+      </p>
+      <p>
+        The Creative Youth Plan intends to enable and propagate the creative potential of every child and
+        young person aged 0–24 through expanded and new initiatives, creating a place where knowledge
+        and creativity are equal partners in forming creative, active citizens.
+      </p>
+    </section>
+
+    <section id="cork-etb">
+      <h2>Cork ETB – Uniquely Placed to Deliver LCYP</h2>
+      <p>
+        Cork ETB is the ideal host platform to deliver the Local Creative Youth Partnership as it is uniquely
+        placed to engage young people who may be seldom-heard or hard-to-reach. It promotes a culture
+        of growth and development in which children and young people are encouraged to give full
+        expression to their talents and gifts.
+      </p>
+      <p>
+        Cork ETB has a strong school network including national schools, post-primary schools and colleges,
+        as well as 12 Youthreach centres across the region. Its Arts Education Strategy underpins a
+        commitment to building a creative and culturally-aware organisation.
+      </p>
+      <p>
+        Cork ETB also coordinates 30 staffed youth work projects and services and over 170 volunteer-led
+        clubs. An evaluation of the initial pilot LCYPs identified the success of positioning LCYP within the
+        youth work sections of ETBs.
+      </p>
+    </section>
+
+    <section id="consultations">
+      <h2>Consultations on the LCYP Plan</h2>
+      <p>
+        The Strategic Plan is founded on extensive consultations, conversations and evaluations of Cork’s
+        2022–2023 pilot LCYP. It is aligned with Cork ETB’s Strategic Plan, Arts Education Strategy, Youth
+        Services Strategic Plan, European Youth Goals, the Arts Council’s Equality, Human Rights and
+        Diversity policy, and local authority Arts & Culture strategies.
+      </p>
+      <p>
+        The LCYP is situated within Cork ETB Youth Services and supported by <strong>Hub na nÓg</strong>, fitting with
+        the government’s <em>Young Ireland</em> National Policy Framework for Children and Young People
+        2023–2028.
+      </p>
+      <p>
+        Consultations with hundreds of children and young people across Cork identified key areas of need:
+      </p>
+      <ul>
+        <li>Space</li>
+        <li>Awareness</li>
+        <li>Creative collaboration</li>
+        <li>Skills development</li>
+        <li>Diversity and inclusion</li>
+        <li>Access</li>
+        <li>Rights-based approach</li>
+      </ul>
+      <p>
+        Young people expressed strong interest in ongoing engagement, with 80 young people interested in
+        joining an LCYP youth forum to inform the work.
+      </p>
+    </section>
+
+    <section id="mission-values">
+      <h2>Mission Statement & Priorities</h2>
+      <h3>Mission Statement</h3>
+      <p>
+        Cork LCYP develops local networks with a wide range of organisations to expand and provide
+        inclusive, diverse and responsive creative opportunities for all children and young people aged
+        0–24 in out-of-school settings, with a particular focus on those who are marginalised or who
+        experience disadvantage in the Cork ETB functional area.
+      </p>
+
+      <h3>Core Values and Guiding Principles – Priorities</h3>
+      <ul>
+        <li>
+          Engage children and young people aged 0–24, with a special focus on those aged 10+.
+        </li>
+        <li>
+          Engage children and young people in Cork city and county, with a special focus on seldom-heard voices.
+        </li>
+        <li>
+          Build a sustainable network of organisations and practitioners to provide practical, participatory creative opportunities.
+        </li>
+        <li>
+          Build capacity on personal, social and organisational levels to enhance the aims of Cork LCYP.
+        </li>
+        <li>
+          Ensure that the voice of the child is front and foremost in creative project planning, taking their views seriously and working collaboratively.
+        </li>
+      </ul>
+    </section>
+
+    <section id="objectives-actions">
+      <h2>From Paper to Practice – Objectives & Actions</h2>
+
+      <div class="objectives-grid">
+        <div class="card">
+          <h3>Objective 1: Be Youth-Led</h3>
+          <div class="collapsible">
+            <div class="collapsible-header">
+              <span>Show actions</span>
+              <span class="chevron">▶</span>
             </div>
-            <button onclick="checkRiddle()" style="margin-top: 15px; width: 100%;">Antwort prüfen</button>
+            <div class="collapsible-body">
+              <ul>
+                <li>Deliver training on the Lundy “Everyday Spaces” checklist.</li>
+                <li>Develop the dedicated youth forum, the Rebel Youth Creatives.</li>
+                <li>Establish diverse focus groups for ongoing youth consultation.</li>
+                <li>Support creative workshops in response to needs identified by young people.</li>
+                <li>Trial innovative approaches for seldom-heard young people to access creative opportunities.</li>
+                <li>Ensure access to open, welcoming spaces that celebrate the arts and diversity.</li>
+                <li>Support young people to be creative leaders and progress to further learning and creative careers.</li>
+              </ul>
+            </div>
+          </div>
         </div>
-    </div>
-   
-    <div class="modal" id="endModal">
-        <div class="modal-content" style="text-align: center;">
-            <h1 id="endTitle"></h1>
-            <p id="endText" style="margin: 20px 0; font-size: 1.2em;"></p>
-            <button onclick="location.reload()" style="width: 100%;">Neues Spiel</button>
+
+        <div class="card">
+          <h3>Objective 2: Develop the Partnership</h3>
+          <div class="collapsible">
+            <div class="collapsible-header">
+              <span>Show actions</span>
+              <span class="chevron">▶</span>
+            </div>
+            <div class="collapsible-body">
+              <ul>
+                <li>Connect venues and artists with youth organisations.</li>
+                <li>Build awareness through public showcases and events.</li>
+                <li>Develop a social media presence supported by young people.</li>
+                <li>Create actions in areas of rural isolation, with a focus on West Cork.</li>
+                <li>Build on relationships with Cork ETB FET, Youthreach and Youth Services to develop progression routes.</li>
+                <li>Identify local partners and bridge gaps in provision.</li>
+                <li>Offer training and CPD opportunities for personal, social and artistic growth in Youth Arts.</li>
+                <li>Ensure a collaborative approach that avoids duplication and responds to young people’s voices.</li>
+              </ul>
+            </div>
+          </div>
         </div>
-    </div>
 
-    <script>
-        const BIOMES = ["Long Island (Einfach)", "Cryo Zone (Mittel)", "Obsidian Wilderness (Schwer)"];
-        const END_BOSS = "Tyranocelus Arcephalus";
-       
-        let state = {
-            currentBiome: null,
-            health: 100,
-            inventory: [],
-            capturedMobs: [],
-            endBossDefeated: false,
-            dungeonsCompleted: [[false, false, false], [false, false, false], [false, false, false]],
-            currentCombat: null,
-            currentDungeon: null,
-            gameStarted: false,
-            bossFight: null,
-            specialCooldown: 0
-        };
-       
-        const riddles = [
-            {
-                q: "Was kann einen Raum füllen, nimmt aber keinen Platz ein?", 
-                keywords: ["licht", "lichtstrahl", "lichtstrahlen", "sonnenlicht"],
-                check: (input) => input.includes("licht")
-            },
-            {
-                q: "Was kann nur dort leben, wo es Licht gibt, aber verschwindet, wenn das Licht darauf scheint?", 
-                keywords: ["schatten", "der schatten", "schattenwurf"],
-                check: (input) => input.includes("schatten")
-            },
-            {
-                q: "Was ist immer vor dir, aber du kannst es nicht sehen?", 
-                keywords: ["zukunft", "die zukunft", "zukunft" , "Florians Nase"],
-                check: (input) => input.includes("zukunft")
-            },
-            {
-                q: "Was hat viele Nadeln, kann aber nicht nähen?", 
-                keywords: ["tannenbaum", "nadelbaum", "baum", "tanne"],
-                check: (input) => input.includes("baum") || input.includes("tanne")
-            },
-            {
-                q: "Eine Frau läuft durch die Stadt, als an ihr ein Auto vorbeifährt. Sofort weiß sie, dass dieses Auto gestohlen ist. Woher?", 
-                keywords: ["ihr eigenes auto", "eigenes auto", "ihr auto", "gehört ihr", "ist ihr"],
-                check: (input) => (input.includes("eigen") && input.includes("auto")) || (input.includes("ihr") && input.includes("auto"))
-            },
-            {
-                q: "Ein Mann und sein Chef haben dieselben Eltern, sind aber keine Geschwister. Wie geht das?", 
-                keywords: ["selbstständig", "selbständig", "eigenes unternehmen", "chef ist er selbst", "er ist der chef"],
-                check: (input) => input.includes("selbstständig") || input.includes("selbständig") || input.includes("eigen")
-            },
-            {
-                q: "Was ist das, was nasser wird, je mehr es trocknet?", 
-                keywords: ["handtuch", "tuch", "lappen", "trockentuch"],
-                check: (input) => input.includes("tuch") || input.includes("lappen")
-            },
-            {
-                q: "Menschen kaufen mich, um zu essen, aber sie essen mich nie. Was bin ich?", 
-                keywords: ["teller", "schüssel", "geschirr", "tisch"],
-                check: (input) => input.includes("teller") || input.includes("schüssel") || input.includes("geschirr")
-            },
-            {
-                q: "Je weiter du vorankommst, desto mehr lässt du mich zurück?", 
-                keywords: ["fußabdruck", "fußspur", "spur", "abdruck"],
-                check: (input) => input.includes("abdruck") || input.includes("spur")
-            },
-            {
-                q: "Ich verdiene Milliarden, indem ich Fenster verkaufe. Wer bin ich?", 
-                keywords: ["microsoft", "bill gates", "windows"],
-                check: (input) => input.includes("microsoft") || input.includes("windows") || input.includes("bill")
-            },
-            {
-                q: "Welcher Z Promi sagte: Willst du wissen wie viel dein Auto wert ist?", 
-                keywords: ["ralf schumacher", "schumacher", "ralf"],
-                check: (input) => input.includes("schumacher") || input.includes("ralf")
-            },
-            {
-                q: "Der Apfel fällt nicht weit vom?", 
-                keywords: ["stamm", "baumstamm", "stamm"],
-                check: (input) => input.includes("stamm")
-            },
-            {
-                q: "Der frühe Vogel fängt den?", 
-                keywords: ["wurm", "regenwurm", "würmchen"],
-                check: (input) => input.includes("wurm")
-            },
-            {
-                q: "Wann entdeckte Christoph Kolumbus Amerika?", 
-                keywords: ["1492", "1492 n.chr.", "1492 nach christus"],
-                check: (input) => input.includes("1492")
-            },
-            {
-                q: "Wie viele Planeten gehören zu unserem Sonnensystem?", 
-                keywords: ["8", "acht", "8 planeten", "acht planeten"],
-                check: (input) => input === "8" || input === "acht"
-            },
-            {
-                q: "Woraus bestehen Rosinen?", 
-                keywords: ["weintrauben", "trauben", "getrocknete trauben", "weinbeeren"],
-                check: (input) => input.includes("traube") || input.includes("beere")
-            },
-            {
-                q: "Welches Unternehmen war ursprünglich unter dem Namen „Blue Ribbon Sports“ bekannt?",
-                keywords: ["Nike", "Neik"],
-                check: (input) => input.includes("nikee")
-            },
-            {
-                q: "Welcher Planet besitzt die meisten Monde?",
-                keywords: ["Saturn", "Saturne"],
-                check: (input) => input.includes("saturn")
-            },
-            {
-                q: "Wer ist der schnellste Vogel der Welt?",
-                keywords: ["Wanderfalke", "falke"],
-                check: (input) => input.includes("falke")
-            }
-        ];
-       
-        const encounters = [
-            {text: "Ein Händler erscheint und bietet dir etwas Holz an.", effect: () => addItem("Holz")},
-            {text: "Du findest eine verborgene Truhe mit Ressourcen!", effect: () => {addItem("Gold"); addItem("Diamant");}},
-            {text: "Ein Sturm zieht auf - du verlierst 10 Leben.", effect: () => changeHealth(-10)},
-            {text: "Eine Kokosnuss fällt auf deinen Kopf - du verlierst 5 Leben", effect: () => changeHealth(-5)},
-            {text: "Du erschreckst dich von einen vorbei laufenden Reh", effect: () => {}},
-            {text: "Du überfällst einen Dorfbewohner und erhälst ein Holzschwert", effect: () => addItem("Holzschwert")},
-            {text: "Dir läuft ein Abenteurer über den Weg und sagt dir - Licht merk dir einfach nur Licht", effect: () => {}},
-            {text: "Ein Bewohner schenkt dir seinen lieblings Stein", effect: () => addItem("Stein")},
-            {text: "Ein Wolf greift dich an - du verlierst 10 Leben", effect: () => changeHealth(-10)},
-            {text: "Du findest einen Lebensbrunnen - du erhälst 10 Leben", effect: () => changeHealth(10)},
-            {text: "Du isst einen Apfel - du erhälst 5 Leben", effect: () => changeHealth(5)},
-            {text: "In einen verborgenen Waldpfad findest du eine Steinaxt", effect: () => addItem("Steinaxt")},
-            {text: "Eine Fee heilt dich und schenkt dir 40 Lebenspunkte", effect: () => changeHealth(40)},
-            {text: "Nico Hülkenberg holt sein erstes Podium - du erhälst 1 Lebenspunkt", effect: () => changeHealth(1)},
-            {text: "Du fällst in eine Grube und brichst dir dein Bein - du verlierst 50 Lebenspunkte", effect: () => changeHealth(-50)},
-            {text: "Du findest auf dem Weg einen weißen Monster - du erhälst 10 Lebenspunkte", effect: () => changeHealth(10)},
-            {text: "Ein Händler schenkt dir einen Fliegenpilz du bist aber dumm wie sau und isst dieses Ding - Du verlierst 10 Lebenspunkte", effect: () => changeHealth(-10)}
-        ];
-       
-        function log(text, type = '') {
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            entry.textContent = `> ${text}`;
-            document.getElementById('gameLog').appendChild(entry);
-            document.getElementById('gameLog').scrollTop = document.getElementById('gameLog').scrollHeight;
-        }
-       
-        function changeHealth(amount) {
-            state.health = Math.max(0, Math.min(100, state.health + amount));
-            document.getElementById('healthBar').style.width = state.health + '%';
-            document.getElementById('healthText').textContent = state.health + '/100';
-           
-            if (amount < 0) {
-                document.body.style.animation = 'shake 0.5s';
-                setTimeout(() => document.body.style.animation = '', 500);
-            }
-           
-            if (state.health <= 0 && !state.endBossDefeated) gameOver();
-        }
-       
-        function addItem(item) {
-            state.inventory.push(item);
-            updateInventory();
-            log(`${item} zum Inventar hinzugefügt!`, 'loot');
-        }
-       
-        function removeItem(item, amount = 1) {
-            for (let i = 0; i < amount; i++) {
-                const idx = state.inventory.indexOf(item);
-                if (idx > -1) state.inventory.splice(idx, 1);
-            }
-            updateInventory();
-        }
-       
-        function hasItem(item, amount = 1) {
-            return state.inventory.filter(i => i === item).length >= amount;
-        }
-       
-        function updateInventory() {
-            const grid = document.getElementById('inventory');
-            grid.innerHTML = '';
-            state.inventory.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.textContent = item;
-                div.title = item;
-                grid.appendChild(div);
-            });
-            document.getElementById('itemCount').textContent = state.inventory.length;
-        }
-       
-        function updateDungeonGrid() {
-            const nodes = document.querySelectorAll('.dungeon-node');
-            nodes.forEach(node => {
-                const b = parseInt(node.dataset.biome);
-                const d = parseInt(node.dataset.dungeon);
-                if (state.dungeonsCompleted[b][d]) {
-                    node.classList.add('completed');
-                    node.textContent = '✓';
-                }
-            });
-           
-            const anyBiomeComplete = state.dungeonsCompleted.some(biome => biome.every(d => d));
-            document.getElementById('bossBtn').disabled = !anyBiomeComplete;
-        }
-       
-        function getBiomeIndex() {
-            return BIOMES.indexOf(state.currentBiome);
-        }
+        <div class="card">
+          <h3>Objective 3: Foster Inclusion</h3>
+          <div class="collapsible">
+            <div class="collapsible-header">
+              <span>Show actions</span>
+              <span class="chevron">▶</span>
+            </div>
+            <div class="collapsible-body">
+              <ul>
+                <li>Share best practice.</li>
+                <li>Measure the impact of creative youth work.</li>
+                <li>Ensure diverse programming reflecting different cultural contexts and participants’ experiences.</li>
+                <li>Create awareness of opportunities.</li>
+                <li>Support emerging young artists to access arts facilitation training and employment.</li>
+                <li>Provide inclusive role models.</li>
+                <li>Recognise the value of universal provision for integrating diverse young people.</li>
+                <li>Target young people with seldom-heard voices.</li>
+                <li>Embed social inclusion into initiatives.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-        function selectBiome(index) {
-            state.currentBiome = BIOMES[index];
-            state.gameStarted = true;
+        <div class="card">
+          <h3>Objective 4: Deepen Creative Collaborations</h3>
+          <div class="collapsible">
+            <div class="collapsible-header">
+              <span>Show actions</span>
+              <span class="chevron">▶</span>
+            </div>
+            <div class="collapsible-body">
+              <ul>
+                <li>Support groups to engage with creative themes identified by young people:
+                  Climate &amp; Creativity, Music &amp; Migration, Youth Media.</li>
+                <li>Support Erasmus+ applications to increase breadth and scope of engagement.</li>
+                <li>Build Cork ETB Youth Services’ international engagement with Erasmus+.</li>
+                <li>Support creatives to engage with multi-agencies on programme development.</li>
+                <li>Create new initiatives and develop existing provision.</li>
+                <li>
+                  Support creative actions in the Irish language, recognising the importance of digital and creative skills
+                  for young people as they celebrate their achievements through inspiring workshops.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            document.getElementById('biomBild').style.display = "block";
-            document.getElementById('currentBiome').textContent = state.currentBiome.split(' ')[0].toUpperCase();
-            document.getElementById('biomeSelection').classList.add('hidden');
-            document.getElementById('mainMenu').classList.remove('hidden');
+    <section id="links">
+      <h2>Links & Partners</h2>
+      <p>Further information and partner organisations connected to the Cork LCYP:</p>
+      <table class="links-table">
+        <tr>
+          <th>Website</th>
+          <th>Notes</th>
+        </tr>
+        <tr>
+          <td>www.creativeireland.gov.ie/en/creative-youth/creative-youth-partnerships</td>
+          <td>Creative Youth Partnerships – Creative Ireland Programme</td>
+        </tr>
+        <tr>
+          <td>www.corketb.ie/cork-etb-arts-provision</td>
+          <td>Cork ETB Arts Provision</td>
+        </tr>
+        <tr>
+          <td>hubnanog.ie</td>
+          <td>Hub na nÓg – Young voices in decision-making</td>
+        </tr>
+        <tr>
+          <td>rebelyouth_lcyp</td>
+          <td>Rebel Youth Creatives (social media handle)</td>
+        </tr>
+      </table>
+      <p style="margin-top:1rem;">
+        Additional partners include the Government of Ireland, the Creative Ireland Programme, Hub na nÓg,
+        and Cork Education and Training Board Youthwork Services.
+      </p>
+    </section>
+  </main>
 
-            switch(index) {
-                case 0:
-                    log("Du spawnst auf Long Island - ein friedliches Biom mit reichen Ressourcen.");
-                    addItem("Holz"); addItem("Stein"); addItem("Gold");
-                    break;
-                case 1:
-                    log("Du spawnst in der Cryo Zone - kalt und gefährlich, aber mit wertvollen Stöcken.");
-                    addItem("Stein"); addItem("Holz");
-                    break;
-                case 2:
-                    log("Du spawnst in der Obsidian Wilderness - ein todbringendes Biom mit wenigen Ressourcen.");
-                    addItem("Stein");
-                    changeHealth(-20);
-                    break;
-            }
-           
-            log("Was möchtest du tun?");
-        }
-       
-        function showMain() {
-            document.getElementById('dungeonSelect').classList.add('hidden');
-            document.getElementById('craftingMenu').classList.add('hidden');
-            document.getElementById('biomeChange').classList.add('hidden');
-            document.getElementById('mainMenu').classList.remove('hidden');
-        }
-       
-        function explore() {
-            const biomes = {
-                0: {
-                    resources: ["Holz", "Stein", "Leder"],
-                    mobs: ["Friedliches Dino", "Pikachu", "Eichhörnchen"],
-                    aggressive: false
-                },
-                1: {
-                    resources: ["Holz", "Stein", "Gold"],
-                    mobs: ["Wolf", "Frost-Dino", "Glatzis"],
-                    aggressive: Math.random() > 0.5
-                },
-                2: {
-                    resources: ["Stein", "Leder", "Gold"],
-                    mobs: ["Mutierter T-Rex", "Gift-Pokemon", "Obsidian-Wolf"],
-                    aggressive: true
-                }
-            };
-           
-            const biome = biomes[getBiomeIndex()];
-           
-            if (Math.random() < 0.34) {
-                const foundResource = biome.resources[Math.floor(Math.random() * biome.resources.length)];
-                addItem(foundResource);
-            } else {
-                log("Du suchst die Gegend ab, findest aber nichts Nützliches...", "event");
-            }
-           
-            if (Math.random() < 0.34) {
-                const mob = biome.mobs[Math.floor(Math.random() * biome.mobs.length)];
-                log(`Ein ${mob} erscheint!`, 'combat');
-               
-                if (biome.aggressive) {
-                    log("Es greift dich sofort an!", 'combat');
-                    startCombat(mob, true);
-                } else {
-                    setTimeout(() => {
-                        if (confirm(`Ein ${mob} scheint friedlich zu sein. Willst du angreifen?`)) {
-                            startCombat(mob, false);
-                        } else {
-                            log("Du gehst weiter.");
-                        }
-                    }, 100);
-                }
-                return;
-            }
-           
-            if (Math.random() < 0.4) {
-                setTimeout(randomEncounter, 800);
-            }
-        }
-       
-        function randomEncounter() {
-            const enc = encounters[Math.floor(Math.random() * encounters.length)];
-            log("Zufällige Begegnung: " + enc.text, 'event');
-            enc.effect();
-        }
-       
-        function startCombat(mob, aggressive) {
-            state.currentCombat = {
-                mob: mob,
-                mobHealth: aggressive ? 30 : 15,
-                aggressive: aggressive,
-                playerDamage: 10,
-                mobDamage: aggressive ? 15 : 5
-            };
-           
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('combatMenu').classList.remove('hidden');
-            updateCombatInfo();
-            log(`Kampf beginnt gegen ${mob}`, 'combat');
-        }
-       
-        function updateCombatInfo() {
-            const c = state.currentCombat;
-            document.getElementById('combatInfo').textContent =
-                `Kampf gegen ${c.mob}! Mob-Leben: ${c.mobHealth} | Dein Leben: ${state.health}`;
-        }
-       
-        function combatAction(action) {
-            const combat = state.currentCombat;
-            
-            if (action === 'attack') {
-                combat.mobHealth -= combat.playerDamage;
-                log(`Du verursachst ${combat.playerDamage} Schaden.`, 'combat');
-                
-                if (combat.mobHealth > 0) {
-                    changeHealth(-combat.mobDamage);
-                    log(`${combat.mob} verursacht ${combat.mobDamage} Schaden.`, 'combat');
-                }
-            } else if (action === 'flee') {
-                if (combat.aggressive) {
-                    log("Du kannst nicht fliehen - der Mob verfolgt dich!", 'combat');
-                    return;
-                } else {
-                    log("Du fliehst erfolgreich.");
-                    endCombat();
-                    return;
-                }
-            }
-            
-            if (combat.mobHealth <= 0) {
-                log(`Du hast ${combat.mob} besiegt!`, 'win');
-                endCombat();
-            } else {
-                updateCombatInfo();
-            }
-        }
-       
-        function endCombat() {
-            state.currentCombat = null;
-            document.getElementById('combatMenu').classList.add('hidden');
-            document.getElementById('mainMenu').classList.remove('hidden');
-        }
-       
-        function showDungeons() {
-            const biomeIdx = getBiomeIndex();
-            const container = document.getElementById('dungeonButtons');
-            container.innerHTML = '';
-           
-            for (let i = 0; i < 3; i++) {
-                const btn = document.createElement('button');
-                const completed = state.dungeonsCompleted[biomeIdx][i];
-                btn.textContent = `Dungeon ${i+1} ${completed ? '[✓]' : '[Offen]'}`;
-                btn.disabled = completed;
-                btn.onclick = () => enterDungeon(i);
-                container.appendChild(btn);
-            }
-           
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('dungeonSelect').classList.remove('hidden');
-        }
-       
-        function enterDungeon(index) {
-            state.currentDungeon = index;
-            document.getElementById('dungeonSelect').classList.add('hidden');
-           
-            const requiredSkill = 10 + (Math.floor(Math.random() * 6) + 1) * 6;
-            log(`Du betrittst Dungeon ${index+1}... Erfordert ${requiredSkill} Skillpunkte.`);
-           
-            const riddle = riddles[Math.floor(Math.random() * riddles.length)];
-            state.currentRiddle = riddle;
-           
-            setTimeout(() => {
-                document.getElementById('riddleText').textContent = riddle.q;
-                document.getElementById('riddleInput').value = '';
-                document.getElementById('riddleHealth').textContent = state.health;
-                document.getElementById('riddleModal').classList.add('active');
-                document.getElementById('riddleInput').focus();
-            }, 500);
-        }
-       
-        function checkRiddle() {
-            const rawInput = document.getElementById('riddleInput').value.trim();
-            const input = rawInput.toLowerCase()
-                .replace(/[.,!?;:"'-]/g, '')
-                .replace(/\s+/g, ' ')
-                .trim();
-            
-            const riddle = state.currentRiddle;
-            let isCorrect = false;
-            
-            if (riddle.keywords && riddle.keywords.some(k => input === k)) {
-                isCorrect = true;
-            }
-            else if (riddle.check && riddle.check(input)) {
-                isCorrect = true;
-            }
-            else if (riddle.keywords && riddle.keywords.some(k => levenshteinDistance(input, k) <= 2)) {
-                isCorrect = true;
-                log(`"${rawInput}" wurde als richtig akzeptiert (Tippfehler korrigiert)`, 'event');
-            }
-            
-            if (isCorrect) {
-                document.getElementById('riddleModal').classList.remove('active');
-                completeDungeon();
-            } else {
-                log(`Falsch! "${rawInput}" ist nicht korrekt. Versuche es erneut. (-8 Leben)`, 'combat');
-                changeHealth(-8);
-                document.getElementById('riddleHealth').textContent = state.health;
-                
-                if (state.health <= 0) {
-                    document.getElementById('riddleModal').classList.remove('active');
-                    log("Du bist im Dungeon gestorben! Inventar zurückgesetzt.", 'death');
-                    state.inventory = [];
-                    updateInventory();
-                    state.currentBiome = BIOMES[0];
-                    state.health = 50;
-                    updateHealthBar();
-                    document.getElementById('currentBiome').textContent = "LONG ISLAND";
-                }
-            }
-        }
+  <footer>
+    Cork Local Creative Youth Partnership · Cork Education and Training Board · Registered Charity Number: 20083274
+  </footer>
 
-        function levenshteinDistance(str1, str2) {
-            const matrix = [];
-            
-            for (let i = 0; i <= str2.length; i++) {
-                matrix[i] = [i];
-            }
-            for (let j = 0; j <= str1.length; j++) {
-                matrix[0][j] = j;
-            }
-            
-            for (let i = 1; i <= str2.length; i++) {
-                for (let j = 1; j <= str1.length; j++) {
-                    if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-                        matrix[i][j] = matrix[i - 1][j - 1];
-                    } else {
-                        matrix[i][j] = Math.min(
-                            matrix[i - 1][j - 1] + 1,
-                            matrix[i][j - 1] + 1,
-                            matrix[i - 1][j] + 1
-                        );
-                    }
-                }
-            }
-            
-            return matrix[str2.length][str1.length];
-        }       
-       
-        function completeDungeon() {
-            const biomeIdx = getBiomeIndex();
-            state.dungeonsCompleted[biomeIdx][state.currentDungeon] = true;
-           
-            const rewards = ["Holz", "Stein", "Leder"];
-            const reward = rewards[Math.floor(Math.random() * rewards.length)];
-            addItem(reward);
-           
-            log(`Dungeon erfolgreich abgeschlossen! Belohnung: ${reward}`, 'win');
-            updateDungeonGrid();
-            showMain();
+  <script>
+    // Smooth scroll navigation
+    document.querySelectorAll("nav button[data-target]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-target");
+        var section = document.getElementById(id);
+        if (section) {
+          window.scrollTo({
+            top: section.offsetTop - 70,
+            behavior: "smooth"
+          });
         }
-       
-        function showCrafting() {
-            const recipes = [
-                {name: "Holzschwert", req: "Holz", amount: 2, id: 1},
-                {name: "Steinaxt", req: ["Stein", "Holz"], amount: [1, 1], id: 2},
-                {name: "Rüstung", req: ["Stein", "Leder"], amount: [2, 2], id: 3},
-                {name: "Goldschwert", req: ["Gold", "Holz"], amount: [2, 1], id: 4}
-            ];
-           
-            const container = document.getElementById('craftingButtons');
-            container.innerHTML = '';
-           
-            recipes.forEach(recipe => {
-                const btn = document.createElement('button');
-                let reqText = "";
-                let canCraft = false;
-               
-                if (Array.isArray(recipe.req)) {
-                    reqText = recipe.req.map((r, i) => `${r} x${recipe.amount[i]}`).join(' + ');
-                    canCraft = recipe.req.every((r, i) => hasItem(r, recipe.amount[i]));
-                } else {
-                    reqText = `${recipe.req} x${recipe.amount}`;
-                    canCraft = hasItem(recipe.req, recipe.amount);
-                }
-               
-                btn.textContent = `${recipe.name} (${reqText})`;
-                btn.disabled = !canCraft;
-                btn.onclick = () => craftItem(recipe);
-                container.appendChild(btn);
-            });
-           
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('craftingMenu').classList.remove('hidden');
-        }
-       
-        function craftItem(recipe) {
-            if (Array.isArray(recipe.req)) {
-                recipe.req.forEach((r, i) => removeItem(r, recipe.amount[i]));
-            } else {
-                removeItem(recipe.req, recipe.amount);
-            }
-           
-            addItem(recipe.name);
-            log(`${recipe.name} hergestellt!`, 'loot');
-           
-            if (recipe.name === "Rüstung") {
-                changeHealth(20);
-                log("Rüstung gewährt +20 Leben!", 'event');
-            }
-           
-            showCrafting();
-        }
-       
-        function showBiomeChange() {
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('biomeChange').classList.remove('hidden');
-        }
-       
-        function changeBiome(index) {
-            state.currentBiome = BIOMES[index];
-            document.getElementById('currentBiome').textContent = state.currentBiome.split(' ')[0].toUpperCase();
-            log(`Du reist nach ${state.currentBiome}.`, 'event');
-            showMain();
-        }
-       
-        function calculatePlayerDamage() {
-            let damage = 10;
-            if (state.inventory.includes("Holzschwert")) damage += 11;
-            if (state.inventory.includes("Steinaxt")) damage += 14;
-            if (state.inventory.includes("Rüstung")) damage += 1;
-            if (state.inventory.includes("Goldschwert")) damage += 8;
-            return damage;
-        }
-       
-        function challengeEndBoss() {
-            const allDungeonsDone = state.dungeonsCompleted.some(biome => biome.every(d => d));
-           
-            if (!allDungeonsDone) {
-                log("Du musst erst alle Dungeons in einem Biom abschließen!", 'combat');
-                return;
-            }
-           
-            log(`Du stellst dich dem Endboss ${END_BOSS}!`, 'combat');
-            log("Ein gewaltiger Mutant aus Dino, Pokémon und Tier!", 'combat');
-           
-            state.bossFight = {
-                health: 160,
-                playerDamage: calculatePlayerDamage()
-            };
-           
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('bossCombatMenu').classList.remove('hidden');
-            updateBossInfo();
-        }
-       
-        function updateBossInfo() {
-            const b = state.bossFight;
-            document.getElementById('bossCombatInfo').textContent =
-                `BOSS: ${b.health} HP | DU: ${state.health} HP`;
-        }
-       
-        function bossCombatAction(action) {
-            const boss = state.bossFight;
-            
-            if (typeof state.specialCooldown === 'undefined') {
-                state.specialCooldown = 0;
-            }
-            
-            if (state.specialCooldown > 0) {
-                state.specialCooldown--;
-            }
-            
-            if (action === 'attack') {
-                const dmg = Math.floor(boss.playerDamage * (0.8 + Math.random() * 0.9));
-                boss.health -= dmg;
-                log(`Du verursachst ${dmg} Schaden.`, 'combat');
-                
-            } else if (action === 'special') {
-                if (state.specialCooldown > 0) {
-                    log(`Spezialattacke noch für ${state.specialCooldown} Züge nicht verfügbar!`, 'combat');
-                    return;
-                }
-                
-                state.specialCooldown = 2;
-                
-                const dmg = Math.floor(boss.playerDamage * 1.5 * (1.2 + Math.random() * 0.8));
-                boss.health -= dmg;
-                log(`⚡ SPEZIALATTACKE! ${dmg} Schaden! (Abklingzeit: 2 Züge)`, 'win');
-            }
-            
-            if (boss.health > 0) {
-                const bossDmg = Math.floor(Math.random() * 12) + 9;
-                changeHealth(-bossDmg);
-                log(`${END_BOSS} verursacht ${bossDmg} Schaden.`, 'combat');
-            }
-            
-            if (boss.health <= 0) {
-                winGame();
-            } else if (state.health <= 0) {
-                gameOver();
-            } else {
-                updateBossInfo();
-                updateSpecialButton();
-            }
-        }
+      });
+    });
 
-        function updateSpecialButton() {
-            const specialBtn = document.querySelector('#bossCombatMenu button[onclick="bossCombatAction(\'special\')"]');
-            
-            if (!specialBtn) return;
-            
-            if (state.specialCooldown > 0) {
-                specialBtn.disabled = true;
-                specialBtn.textContent = `⚡ Warte ${state.specialCooldown}`;
-                specialBtn.style.borderColor = "#444";
-                specialBtn.style.color = "#666";
-            } else {
-                specialBtn.disabled = false;
-                specialBtn.textContent = "⚡ Spezialattacke";
-                specialBtn.style.borderColor = "#ffd700";
-                specialBtn.style.color = "#ffd700";
-            }
-        }       
-       
-        function gameOver() {
-            document.getElementById('endTitle').textContent = "GAME OVER";
-            document.getElementById('endTitle').style.color = "#ff0000";
-            document.getElementById('endText').textContent = "Du bist gestorben! Primecore ist verloren...";
-            document.getElementById('endModal').classList.add('active');
-        }
-       
-        function winGame() {
-            state.endBossDefeated = true;
-            document.getElementById('endTitle').textContent = "SIEG!";
-            document.getElementById('endTitle').style.color = "#ffd700";
-            document.getElementById('endText').textContent = `Du hast ${END_BOSS} besiegt! Primecore ist gerettet!`;
-            document.getElementById('endModal').classList.add('active');
-        }
-    </script>
+    // Collapsible objective cards
+    document.querySelectorAll(".collapsible").forEach(function (col) {
+      var header = col.querySelector(".collapsible-header");
+      header.addEventListener("click", function () {
+        col.classList.toggle("open");
+      });
+    });
+  </script>
 </body>
 </html>
-
-
-
-
